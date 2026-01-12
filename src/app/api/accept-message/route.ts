@@ -15,11 +15,11 @@ export async function POST(request: Request) {
             message: "Not Authenticated"
         }, { status: 401 })
     }
-    
+
     const userId = user._id;
-    const {acceptMessages} = await request.json();
+    const { acceptMessage } = await request.json();
     try {
-        const updatedUser = await UserModel.findByIdAndUpdate(userId, {isAcceptingMessages: acceptMessages},{new: true});
+        const updatedUser = await UserModel.findByIdAndUpdate(userId, { isAcceptingMessages: acceptMessage }, { new: true });
         if (!updatedUser) {
             return NextResponse.json({
                 success: false,
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
         return NextResponse.json({
             success: true,
             message: "Message acceptance status updated successfully",
-            updatedUser
+            isAcceptingMessages: updatedUser.isAcceptingMessages
         }, { status: 200 })
     } catch (error) {
         console.error("Error updating message acceptance status", error);
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
             message: "Not Authenticated"
         }, { status: 401 })
     }
-    
+
     const userId = user._id;
     try {
         const user = await UserModel.findById(userId);

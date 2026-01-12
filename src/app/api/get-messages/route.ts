@@ -16,8 +16,8 @@ export async function GET(request: Request) {
             message: "Not Authenticated"
         }, { status: 401 })
     }
-    
-    const userId = new mongoose.Types.ObjectId(user.id);
+
+    const userId = new mongoose.Types.ObjectId(user._id);
     try {
         const user = await UserModel.aggregate([
             {
@@ -44,9 +44,10 @@ export async function GET(request: Request) {
         ]);
         if (!user || user.length === 0) {
             return NextResponse.json({
-                success: false,
-                message: "User not found"
-            }, { status: 404 })
+                success: true,
+                message: "User found successfully",
+                messages: []
+            }, { status: 200 })
         }
         return NextResponse.json({
             success: true,
