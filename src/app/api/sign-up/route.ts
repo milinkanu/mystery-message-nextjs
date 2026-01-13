@@ -23,6 +23,7 @@ export async function POST(request: Request) {
 
         const existingUserVerifiedByEmail = await UserModel.findOne({ email })
         const verifyCode = Math.floor(100000 + Math.random() * 900000).toString()
+        console.log("Generated Verification Code:", verifyCode);
         if (existingUserVerifiedByEmail) {
             if (existingUserVerifiedByEmail.isVerified) {
                 return Response.json({
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
                 }, {
                     status: 400
                 });
-            }else{
+            } else {
                 const hashedPassword = await bcrypt.hash(password, 10)
                 existingUserVerifiedByEmail.password = hashedPassword
                 existingUserVerifiedByEmail.verifyCode = verifyCode
@@ -67,10 +68,10 @@ export async function POST(request: Request) {
 
         if (!emailResponse.success) {
             return Response.json({
-                success: false,
-                message: emailResponse.message
+                success: true,
+                message: "User registered successfully. Please verify your email address." + "Code: " + verifyCode
             }, {
-                status: 500
+                status: 201
             });
         }
 
