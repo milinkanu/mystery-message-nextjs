@@ -3,6 +3,9 @@ import mongoose, { Schema, Document } from "mongoose";
 export interface Message extends Document {
     content: string;
     createdAt: Date;
+    reply?: string;
+    repliedAt?: Date;
+    senderId?: mongoose.Schema.Types.ObjectId;
 }
 
 const MessageSchema: Schema<Message> = new Schema({
@@ -14,6 +17,16 @@ const MessageSchema: Schema<Message> = new Schema({
         type: Date,
         required: true,
         default: Date.now
+    },
+    reply: {
+        type: String,
+    },
+    repliedAt: {
+        type: Date,
+    },
+    senderId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
     }
 })
 

@@ -5,7 +5,7 @@ import * as z from "zod"
 import Link from "next/link"
 import { useState } from "react"
 import { toast } from "sonner"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { signInSchema } from "@/schemas/signInSchema"
 import { signIn } from "next-auth/react"
 import { Form, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
@@ -17,6 +17,8 @@ import { Loader2 } from "lucide-react"
 const SignInPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const callbackUrl = searchParams.get('callbackUrl')
 
   //zod implementation
   const form = useForm<z.infer<typeof signInSchema>>({
@@ -45,7 +47,12 @@ const SignInPage = () => {
 
     if (result?.url) {
       toast.success("Login successful")
-      router.replace('/dashboard')
+      if (callbackUrl) {
+        router.replace(callbackUrl)
+      } else {
+        router.replace('/dashboard')
+      }
+
     }
     setIsSubmitting(false)
   }

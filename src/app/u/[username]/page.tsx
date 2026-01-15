@@ -1,14 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios, { AxiosError } from 'axios';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { CardHeader, CardContent, Card } from '@/components/ui/card';
-import { useCompletion } from '@ai-sdk/react';
+import { CardHeader, CardContent, Card, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Form,
   FormControl,
@@ -22,12 +21,13 @@ import { toast } from 'sonner';
 import * as z from 'zod';
 import { ApiResponse } from '@/types/ApiResponse';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 import { messageSchema } from '@/schemas/messageSchema';
 import Navbar from '@/components/Navbar';
+import { Message } from '@/model/User.model';
+import { useSession } from 'next-auth/react';
 
 const specialChar = '||';
-
 
 const parseStringMessages = (messageString: string): string[] => {
   if (!messageString) return [];
@@ -40,35 +40,35 @@ const initialMessageString =
 export default function SendMessage() {
   const params = useParams();
   const username = params.username as string;
+  const pathname = usePathname();
 
-  // const {
-  //   complete,
-  //   completion,
-  //   isLoading: isSuggestLoading,
-  //   error,
-  // } = useCompletion({
-  //   api: '/api/suggest-messages',
-  //   initialCompletion: initialMessageString,
-  //   onError: (err) => {
-  //     console.error('Error fetching suggestions:', err);
-  //     toast.error('Failed to fetch suggestions', {
-  //       description: err.message,
-  //     });
-  //   },
-  // });
+  const { data: session } = useSession();
 
-  // Using standard fetch instead of streaming for better reliability with fallbacks
   const [suggestedMessages, setSuggestedMessages] = useState<string[]>(parseStringMessages(initialMessageString));
   const [isSuggestLoading, setIsSuggestLoading] = useState(false);
   const [suggestError, setSuggestError] = useState<string | null>(null);
+
+  // New state for replied messages
+  const [repliedMessages, setRepliedMessages] = useState<Message[]>([]);
+
+  const fetchRepliedMessages = async () => {
+    try {
+      const response = await axios.get<ApiResponse>(`/api/get-public-messages?username=${username}`);
+      setRepliedMessages(response.data.messages || []);
+    } catch (error) {
+      console.error("Error fetching replies", error);
+    }
+  }
+
+  useEffect(() => {
+    fetchRepliedMessages();
+  }, [username]);
 
   const fetchSuggestedMessages = async () => {
     setIsSuggestLoading(true);
     setSuggestError(null);
     try {
-      // POST request to our API
       const response = await axios.post('/api/suggest-messages');
-      // The API returns a plain text string separated by '||'
       const text = response.data;
       setSuggestedMessages(parseStringMessages(text));
     } catch (error) {
@@ -101,6 +101,7 @@ export default function SendMessage() {
       const response = await axios.post<ApiResponse>('/api/send-message', {
         ...data,
         username,
+        senderId: session?.user?._id
       });
 
       toast.success(response.data.message || 'Message sent successfully');
@@ -131,6 +132,24 @@ export default function SendMessage() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-xl font-bold mb-4 block">Send Anonymous Message to @{username}</FormLabel>
+                  <div className="mb-2 text-sm flex items-center justify-between">
+                    <div>
+                      {session ? (
+                        <span className="text-green-600 font-medium">
+                          Logged in as {session.user.username || session.user.email} <span className="text-xs text-gray-400">({session.user._id})</span>. You will receive a private reply!
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">
+                          Want a private reply? <Link href={`/sign-in?callbackUrl=${encodeURIComponent(pathname || '/')}`} className="underline text-blue-500">Login</Link> to send as a registered user (still anonymous to receiver).
+                        </span>
+                      )}
+                    </div>
+                    {session && (
+                      <Link href="/dashboard">
+                        <Button size="sm" variant="outline">Back to Dashboard</Button>
+                      </Link>
+                    )}
+                  </div>
                   <FormControl>
                     <Textarea
                       placeholder="Write your anonymous message here"
@@ -196,6 +215,39 @@ export default function SendMessage() {
             </CardContent>
           </Card>
         </div>
+
+        <Separator className="my-6" />
+
+        {/* Q&A Board */}
+        <div>
+          <h2 className="text-3xl font-bold mb-6 text-center">Q & A Board</h2>
+          <div className="space-y-6">
+            {repliedMessages.length > 0 ? (
+              repliedMessages.map((msg, index) => (
+                <Card key={index} className="bg-white dark:bg-zinc-900 shadow-md transform transition duration-300 hover:scale-[1.01]">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg font-bold text-gray-800 dark:text-gray-100 italic">
+                      "{msg.content}"
+                    </CardTitle>
+                    <CardDescription className="text-xs text-gray-500">
+                      Asked on {new Date(msg.createdAt).toLocaleDateString()}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="pl-4 border-l-4 border-l-blue-500 py-1">
+                      <p className="text-base font-medium text-gray-700 dark:text-gray-300">
+                        {msg.reply}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <p className="text-center text-gray-500">No questions answered yet.</p>
+            )}
+          </div>
+        </div>
+
         <Separator className="my-6" />
         <div className="text-center">
           <div className="mb-4">Get Your Message Board</div>
