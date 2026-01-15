@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import Link from "next/link"
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { toast } from "sonner"
 import { useRouter, useSearchParams } from "next/navigation"
 import { signInSchema } from "@/schemas/signInSchema"
@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 import { Loader2 } from "lucide-react"
 
-const SignInPage = () => {
+const SignInForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -117,4 +117,10 @@ const SignInPage = () => {
   )
 }
 
-export default SignInPage
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center min-h-screen bg-background"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+      <SignInForm />
+    </Suspense>
+  )
+}
